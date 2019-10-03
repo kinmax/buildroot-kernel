@@ -16,6 +16,8 @@ struct sstf_data {
 	struct list_head queue;
 };
 
+struct request *last;
+
 static void sstf_merged_requests(struct request_queue *q, struct request *rq,
 				 struct request *next)
 {
@@ -35,8 +37,16 @@ static int sstf_dispatch(struct request_queue *q, int force){
 	 */
 
 	rq = list_first_entry_or_null(&nd->queue, struct request, queuelist);
+	
+	struct request *ptr = NULL; 
+	list_for_each_entry(ptr, &nd->queue, queuelist) 
+    { 
+    	printk("data  =  %d\n" , ptr->queuelist);
+    }
+    
 	if (rq) {
 		list_del_init(&rq->queuelist);
+		last = rq;
 		elv_dispatch_sort(q, rq);
 		printk(KERN_EMERG "[SSTF] dsp %c %lu\n", direction, blk_rq_pos(rq));
 
