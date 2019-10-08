@@ -16,7 +16,8 @@ struct sstf_data {
 	struct list_head queue;
 };
 
-struct request *last;
+struct request *last = NULL;
+int i = 0;
 
 static void sstf_merged_requests(struct request_queue *q, struct request *rq,
 				 struct request *next)
@@ -38,13 +39,19 @@ static int sstf_dispatch(struct request_queue *q, int force){
 
 	rq = list_first_entry_or_null(&nd->queue, struct request, queuelist);
 	
-	struct request *ptr = NULL; 
-	list_for_each_entry(ptr, &nd->queue, queuelist) 
-    { 
-    	printk("data  =  %d\n" , ptr->queuelist);
-    }
+	struct request *ptr = NULL;
+	
     
 	if (rq) {
+		if(i == 0)
+		{
+			last = NULL;
+		}
+		list_for_each_entry(ptr, &nd->queue, queuelist)
+		{ 
+		
+		}
+		i++;
 		list_del_init(&rq->queuelist);
 		last = rq;
 		elv_dispatch_sort(q, rq);
@@ -65,7 +72,7 @@ static void sstf_add_request(struct request_queue *q, struct request *rq){
 	 *
 	 * Antes de retornar da função, imprima o sector que foi adicionado na lista.
 	 */
-
+	
 	list_add_tail(&rq->queuelist, &nd->queue);
 	printk(KERN_EMERG "[SSTF] add %c %lu\n", direction, blk_rq_pos(rq));
 }
