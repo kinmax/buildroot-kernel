@@ -22,6 +22,11 @@ int main(){
 	printf("Cleaning disk cache...\n");
 	system("echo 3 > /proc/sys/vm/drop_caches");
 
+	for(i = 0; i < 50; i++)
+	{
+		fork();
+	}
+
 	srand(getpid());
 
 	fd = open("/dev/sdb", O_RDWR);
@@ -31,15 +36,11 @@ int main(){
 	}
 
 	strcpy(buf, "hello world!");
-
-	for (i = 0; i < 50; i++){
-		pos = (rand() % (DISK_SZ >> 9));
-		/* Set position */
-		lseek(fd, pos * 512, SEEK_SET);
-		/* Peform read. */
-		read(fd, buf, 100);
-	}
-	close(fd);
+	pos = (rand() % (DISK_SZ >> 9));
+	/* Set position */
+	lseek(fd, pos * 512, SEEK_SET);
+	/* Peform read. */
+	read(fd, buf, 100);
 
 	return 0;
 }

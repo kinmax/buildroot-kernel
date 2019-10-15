@@ -1,8 +1,8 @@
 /*
- * SSTF IO Scheduler
- *
- * For Kernel 4.13.9
- */
+* SSTF IO Scheduler
+*
+* For Kernel 4.13.9
+*/
 
 #include <linux/blkdev.h>
 #include <linux/elevator.h>
@@ -10,7 +10,6 @@
 #include <linux/module.h>
 #include <linux/slab.h>
 #include <linux/init.h>
-
 /* SSTF data structure. */
 struct sstf_data {
 	struct list_head queue;
@@ -19,8 +18,7 @@ struct sstf_data {
 struct request *last = NULL;
 int i = 0;
 
-static void sstf_merged_requests(struct request_queue *q, struct request *rq,
-				 struct request *next)
+static void sstf_merged_requests(struct request_queue *q, struct request *rq, struct request *next)
 {
 	list_del_init(&next->queuelist);
 }
@@ -31,31 +29,42 @@ static int sstf_dispatch(struct request_queue *q, int force){
 	char direction = 'R';
 	struct request *rq;
 
-	/* Aqui deve-se retirar uma requisição da fila e enviá-la para processamento.
-	 * Use como exemplo o driver noop-iosched.c. Veja como a requisição é tratada.
-	 *
-	 * Antes de retornar da função, imprima o sector que foi atendido.
-	 */
+/* Aqui deve-se retirar uma requisição da fila e enviá-la para processamento.
+* Use como exemplo o driver noop-iosched.c. Veja como a requisição é tratada.
+*
+* Antes de retornar da função, imprima o sector que foi atendido.
+*/
 
-	rq = list_first_entry_or_null(&nd->queue, struct request, queuelist);
-	
+
 	struct request *ptr = NULL;
-	
-    
-	if (rq) {
+	struct request *next = NULL;
+	int k = 0;
+
+	next = list_first_entry_or_null(&nd->queue, struct request, queuelist);
+
+	if (next) {
 		if(i == 0)
 		{
 			last = NULL;
 		}
 		list_for_each_entry(ptr, &nd->queue, queuelist)
-		{ 
-		
+		{
+			if(last == NULL)
+			{
+				last = ptr;
+				break;
+			}
+			if(abs(blk_rq_pos(ptr) - blk_rq_pos(last)) <= abs(blk_rq_pos(next) - blk_rq_pos(last)))
+			{
+
+				next = ptr;
+			}
 		}
 		i++;
-		list_del_init(&rq->queuelist);
-		last = rq;
-		elv_dispatch_sort(q, rq);
-		printk(KERN_EMERG "[SSTF] dsp %c %lu\n", direction, blk_rq_pos(rq));
+		list_del(&next->queuelist);
+		last = next;
+		elv_dispatch_sort(q, next);
+		printk(KERN_EMERG "[SSTF] dsp %c %lu\n", direction, blk_rq_pos(next));
 
 		return 1;
 	}
@@ -68,11 +77,11 @@ static void sstf_add_request(struct request_queue *q, struct request *rq){
 	char direction = 'R';
 
 	/* Aqui deve-se adicionar uma requisição na fila do driver.
-	 * Use como exemplo o driver noop-iosched.c
-	 *
-	 * Antes de retornar da função, imprima o sector que foi adicionado na lista.
-	 */
-	
+	* Use como exemplo o driver noop-iosched.c
+	*
+	* Antes de retornar da função, imprima o sector que foi adicionado na lista.
+	*/
+
 	list_add_tail(&rq->queuelist, &nd->queue);
 	printk(KERN_EMERG "[SSTF] add %c %lu\n", direction, blk_rq_pos(rq));
 }
@@ -82,13 +91,13 @@ static int sstf_init_queue(struct request_queue *q, struct elevator_type *e){
 	struct elevator_queue *eq;
 
 	/* Implementação da inicialização da fila (queue).
-	 *
-	 * Use como exemplo a inicialização da fila no driver noop-iosched.c
-	 *
-	 */
+	*
+	* Use como exemplo a inicialização da fila no driver noop-iosched.c
+	*
+	*/
 
 	eq = elevator_alloc(q, e);
-	if (!eq)
+	if (!eq) 
 		return -ENOMEM;
 
 	nd = kmalloc_node(sizeof(*nd), GFP_KERNEL, q->node);
@@ -112,10 +121,10 @@ static void sstf_exit_queue(struct elevator_queue *e)
 	struct sstf_data *nd = e->elevator_data;
 
 	/* Implementação da finalização da fila (queue).
-	 *
-	 * Use como exemplo o driver noop-iosched.c
-	 *
-	 */
+	*
+	* Use como exemplo o driver noop-iosched.c
+	*
+	*/
 	BUG_ON(!list_empty(&nd->queue));
 	kfree(nd);
 }
@@ -123,11 +132,11 @@ static void sstf_exit_queue(struct elevator_queue *e)
 /* Infrastrutura dos drivers de IO Scheduling. */
 static struct elevator_type elevator_sstf = {
 	.ops.sq = {
-		.elevator_merge_req_fn		= sstf_merged_requests,
-		.elevator_dispatch_fn		= sstf_dispatch,
-		.elevator_add_req_fn		= sstf_add_request,
-		.elevator_init_fn		= sstf_init_queue,
-		.elevator_exit_fn		= sstf_exit_queue,
+		.elevator_merge_req_fn = sstf_merged_requests,
+		.elevator_dispatch_fn = sstf_dispatch,
+		.elevator_add_req_fn = sstf_add_request,
+		.elevator_init_fn = sstf_init_queue,
+		.elevator_exit_fn = sstf_exit_queue,
 	},
 	.elevator_name = "sstf",
 	.elevator_owner = THIS_MODULE,
