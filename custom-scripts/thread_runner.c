@@ -6,8 +6,9 @@
 #include <string.h>
 #include <linux/sched.h>
 
-char* buffer;
-int current_size, buffer_size, number_of_threads, priority, policy;
+volatile char* buffer;
+int buffer_size, number_of_threads, priority, policy, *call_counter;
+volatile int current_size;
 sem_t mutex;
 
 void *run(void *character)
@@ -16,13 +17,14 @@ void *run(void *character)
 	while(1)
 	{
 	    sem_wait(&mutex);
-	    if(current_size == buffer_size)
+        if(current_size >= buffer_size)
 	    {
+	        sem_post(&mutex);
 	        break;
 	    }
-	    printf("%c", my_char);
 	    buffer[current_size] = my_char;
 	    current_size++;
+	    call_counter[my_char-65]++;
 	    sem_post(&mutex);
 	}
 	return(NULL);
@@ -98,22 +100,47 @@ int main(int argc, char **argv)
 		exit(0);
 	}
 	
-	long int character = 65, i;
+	long int character = 65;
+	int i;
 	pthread_t threads[number_of_threads];
-	buffer = malloc(sizeof(buffer_size));
 	current_size = 0;
 	sem_init(&mutex, 0, 1);
+	call_counter = malloc(number_of_threads * sizeof(int));
+	buffer = malloc(buffer_size * sizeof(char));
 	for(i = 0; i < number_of_threads; i++)
 	{
+	    call_counter[i] = 0;
 	    pthread_create(&threads[i], NULL, run, (void *)character);		
 	    setpriority(&threads[i], policy, priority);
 	    character++;
 	}
-	
-	printf("%s", buffer);
+	for(i = 0; i < number_of_threads; i++)
+	{
+	    pthread_join(threads[i], NULL);
+	}
 	sem_destroy(&mutex);
-	pthread_exit(NULL);
-	return(0);
-	
+    printf("%s\n\n", buffer);
+    
+    for(i = 0; i < buffer_size; i++)
+    {
+        if(i == 0)
+        {
+            printf("%c", buffer[i]);
+        }
+        else
+        {
+            if(buffer[i] != buffer[i-1])
+            {
+                printf("%c", buffer[i]);
+            }
+        }
+    }
+    printf("\n\n");
+    for(i = 0; i < number_of_threads; i++)
+    {
+        printf("%c - %d\n", i+65, call_counter[i]);
+    }
+    
+	return(0);	
 }
 
