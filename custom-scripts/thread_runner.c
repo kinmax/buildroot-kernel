@@ -11,8 +11,11 @@ int buffer_size, number_of_threads, priority, policy, *call_counter;
 volatile int current_size;
 sem_t mutex;
 
+static pthread_barrier_t bar;
+
 void *run(void *character)
 {
+    pthread_barrier_wait(&bar);
 	char my_char = (char)(long int)character;
 	while(1)
 	{
@@ -107,6 +110,7 @@ int main(int argc, char **argv)
 	sem_init(&mutex, 0, 1);
 	call_counter = malloc(number_of_threads * sizeof(int));
 	buffer = malloc(buffer_size * sizeof(char));
+	pthread_barrier_init(&bar, NULL, number_of_threads);
 	for(i = 0; i < number_of_threads; i++)
 	{
 	    call_counter[i] = 0;
@@ -118,9 +122,7 @@ int main(int argc, char **argv)
 	{
 	    pthread_join(threads[i], NULL);
 	}
-	sem_destroy(&mutex);
     printf("%s\n\n", buffer);
-    
     for(i = 0; i < buffer_size; i++)
     {
         if(i == 0)
@@ -140,6 +142,9 @@ int main(int argc, char **argv)
     {
         printf("%c - %d\n", i+65, call_counter[i]);
     }
+    
+    sem_destroy(&mutex);
+	pthread_barrier_destroy(&bar);
     
 	return(0);	
 }
